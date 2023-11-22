@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ES2020",
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
+    "jsx": "react",
+    "downlevelIteration": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "noImplicitThis": false,
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "rootDirs": ["."],
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "removeComments": true,
+    "declaration": true,
+    "newLine": "lf",
+    "outDir": "./dist"
+  },
+  "include": ["./src/**/*"],
+  "exclude": []
+}
