@@ -1,7 +1,9 @@
 {
   "name": "test",
   "scripts": {
-    "start": "webpack serve"
+    "start": "webpack serve",
+    "lint": "eslint  .",
+    "lint:fix": "npx eslint --fix ."
   },
   "dependencies": {
     "@reduxjs/toolkit": "^1.9.7",

@@ -1,16 +1,15 @@
-import { IViewerOptions, Viewer } from './viewer';
+import { ViewerOptions, Viewer } from './viewer';
 
-const viewerOptions: IViewerOptions = {
-  documentBody: document.body,
-  windowSize: {
-    innerHeight: window.innerHeight,
-    innerWidth: window.innerWidth,
-  },
+const viewerOptions: ViewerOptions = {
+  documentRequestedById: document.getElementById('root'),
+  browserWindow: window,
   antialias: true,
-  rectangleColor: 'white'
+  rectangleColor: 'white',
+  frustumSize: 1000,
+  getAspect: (browserWindow: Window) => browserWindow.innerWidth / browserWindow.innerHeight
 };
 
 const viewer = new Viewer(viewerOptions);
 viewer.render();
 
-console.info(viewer);
+document.body.style.cssText = 'overflow:hidden; margin:0';

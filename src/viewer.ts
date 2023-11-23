@@ -1,74 +1,109 @@
-import { OrthographicCamera, Scene, Mesh, WebGLRenderer, PlaneGeometry, MeshBasicMaterial, Color } from 'three';
+import * as THREE from 'three';
 
-type TWindowSize = Pick<Window, 'innerHeight' | 'innerWidth'>;
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
-export type IViewerOptions = Readonly<{
-  documentBody: Document['body'];
-  windowSize: TWindowSize;
+export type ViewerOptions = Readonly<{
+  documentRequestedById: HTMLElement | null;
+  browserWindow: Window;
   antialias: boolean;
   rectangleColor: 'red' | 'white';
+  frustumSize: number;
+  getAspect: (browserWindow: Window) => number;
 }>
 
-
 export class Viewer {
-  private readonly camera: OrthographicCamera;
-  private readonly scene: Scene;
-  private readonly rectangle: Mesh;
-  private readonly renderer: WebGLRenderer;
+  private readonly camera: THREE.OrthographicCamera;
+  private readonly scene: THREE.Scene;
+  private readonly rectangle: THREE.Mesh;
+  private readonly renderer: THREE.WebGLRenderer;
+  private readonly controls: OrbitControls;
 
+  constructor(options: ViewerOptions) {
+    const {
+      documentRequestedById,
+      browserWindow,
+      antialias,
+      rectangleColor,
+      frustumSize,
+      getAspect
+    } = options;
 
-  constructor(options: IViewerOptions) {
-    const { documentBody, windowSize, antialias, rectangleColor } = options;
-
-    this.renderer = new WebGLRenderer({ antialias });
-    this.camera = new OrthographicCamera(
-      //  Цифры могут быть переданы через объект options
-      windowSize.innerWidth / - 2,
-      windowSize.innerWidth / 2,
-      windowSize.innerHeight / 2,
-      windowSize.innerHeight / - 2,
+    this.renderer = new THREE.WebGLRenderer({ antialias });
+    this.camera = new THREE.OrthographicCamera(
+      frustumSize * getAspect(browserWindow) / -2,
+      frustumSize * getAspect(browserWindow) / 2,
+      frustumSize / 2,
+      frustumSize / -2,
       100,
       -100
     );
 
-    this.scene = new Scene();
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
-    // Цифры могут быть переданы через объект options
-    const geometry = new PlaneGeometry(300, 300);
-    const material = new MeshBasicMaterial({color: rectangleColor});
-    this.rectangle = new Mesh(geometry, material);
+    this.scene = new THREE.Scene();
 
-    this.initRenderer(documentBody, windowSize);
-    this.initCamera(windowSize);
+    const geometry = new THREE.PlaneGeometry(300, 300);
+    const material = new THREE.MeshBasicMaterial({ color: rectangleColor });
+    this.rectangle = new THREE.Mesh(geometry, material);
+
+    this.initRenderer(documentRequestedById, window);
+    this.initCamera(window);
     this.initScene();
-    this.addRectangle(windowSize);
+    this.addRectangle(window);
+    this.resizeListener(window, frustumSize, getAspect);
+    this.animate();
+    this.changeColor();
   }
 
-  public render (): void {
+  public render(): void {
     this.renderer.render(this.scene, this.camera);
   }
 
-  private initRenderer(documentBody: Document['body'], windowSize: TWindowSize): void {
-    this.renderer.setSize(windowSize.innerWidth, windowSize.innerHeight);
-    documentBody.appendChild(this.renderer.domElement);
+  private initRenderer(documentRequestedById: ViewerOptions['documentRequestedById'], browserWindow: ViewerOptions['browserWindow']): void {
+    this.renderer.setSize(browserWindow.innerWidth, browserWindow.innerHeight);
+    if (documentRequestedById != null) { documentRequestedById.appendChild(this.renderer.domElement); }
   }
 
   private initScene(): void {
-    this.scene.background = new Color("grey");
+    this.scene.background = new THREE.Color('grey');
     this.scene.add(this.camera);
   }
 
-  private initCamera (windowSize: IViewerOptions['windowSize']): void {
+  private initCamera(browserWindow: ViewerOptions['browserWindow']): void {
     this.camera.position.set(
-      windowSize.innerWidth / 2,
-      windowSize.innerHeight / -2,
+      browserWindow.innerWidth / 2,
+      browserWindow.innerHeight / -2,
       1
     );
   }
 
-  private addRectangle (windowSize: IViewerOptions['windowSize']): void {
-    this.rectangle.position.x = windowSize.innerWidth / 2;
-    this.rectangle.position.y = windowSize.innerHeight / -2;
+  private addRectangle(browserWindow: ViewerOptions['browserWindow']): void {
+    this.rectangle.position.x = browserWindow.innerWidth / 2;
+    this.rectangle.position.y = browserWindow.innerHeight / -2;
     this.scene.add(this.rectangle);
+  }
+
+  private resizeListener(window: Window, frustumSize: ViewerOptions['frustumSize'], getAspect: ViewerOptions['getAspect']): void {
+    const onWindowResize = ():void => {
+      this.camera.left = -frustumSize * getAspect(window) / 2;
+      this.camera.right = frustumSize * getAspect(window) / 2;
+      this.camera.top = frustumSize / 2;
+      this.camera.bottom = -frustumSize / 2;
+      this.camera.updateProjectionMatrix();
+      this.renderer.setSize(window.innerWidth, window.innerHeight);
+    };
+
+    window.addEventListener('resize', onWindowResize, false);
+  }
+
+  private animate(): void {
+    requestAnimationFrame(this.animate.bind(this));
+    this.renderer.render(this.scene, this.camera);
+  }
+
+  private changeColor():void {
+    this.renderer.domElement.addEventListener('click', () => {
+      this.renderer.domElement.style.backgroundColor = 'blue';
+    });
   }
 }
