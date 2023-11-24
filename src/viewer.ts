@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 export type ViewerOptions = Readonly<{
   documentRequestedById: HTMLElement | null;
@@ -16,7 +16,11 @@ export class Viewer {
   private readonly scene: THREE.Scene;
   private readonly rectangle: THREE.Mesh;
   private readonly renderer: THREE.WebGLRenderer;
-  private readonly controls: OrbitControls;
+  // private readonly controls: OrbitControls;
+  private readonly root: HTMLElement;
+  private needsDraw: boolean = false;
+  private width: number = 1;
+  private height: number = 1;
 
   constructor(options: ViewerOptions) {
     const {
@@ -28,6 +32,7 @@ export class Viewer {
       getAspect
     } = options;
 
+    this.root = documentRequestedById ?? document.body;
     this.renderer = new THREE.WebGLRenderer({ antialias });
     this.camera = new THREE.OrthographicCamera(
       frustumSize * getAspect(browserWindow) / -2,
@@ -38,7 +43,7 @@ export class Viewer {
       -100
     );
 
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
     this.scene = new THREE.Scene();
 
@@ -50,14 +55,22 @@ export class Viewer {
     this.initCamera(window);
     this.initScene();
     this.addRectangle(window);
-    this.resizeListener(window, frustumSize, getAspect);
-    this.animate();
+    // this.resizeListener(window, frustumSize, getAspect);
     this.changeColor();
+
+    this.root.addEventListener('mousemove', this.#mouseMoveHandler);
+
+    this.animate();
   }
 
-  public render(): void {
-    this.renderer.render(this.scene, this.camera);
-  }
+  #mouseMoveHandler = (e: MouseEvent): void => {
+    if ((e.buttons & 0x01) === 0) {
+      return;
+    }
+
+    this.camera.position.x -= e.movementX;
+    this.camera.position.y += e.movementY;
+  };
 
   private initRenderer(documentRequestedById: ViewerOptions['documentRequestedById'], browserWindow: ViewerOptions['browserWindow']): void {
     this.renderer.setSize(browserWindow.innerWidth, browserWindow.innerHeight);
@@ -83,27 +96,64 @@ export class Viewer {
     this.scene.add(this.rectangle);
   }
 
-  private resizeListener(window: Window, frustumSize: ViewerOptions['frustumSize'], getAspect: ViewerOptions['getAspect']): void {
-    const onWindowResize = ():void => {
-      this.camera.left = -frustumSize * getAspect(window) / 2;
-      this.camera.right = frustumSize * getAspect(window) / 2;
-      this.camera.top = frustumSize / 2;
-      this.camera.bottom = -frustumSize / 2;
-      this.camera.updateProjectionMatrix();
-      this.renderer.setSize(window.innerWidth, window.innerHeight);
-    };
+  // private resizeListener(window: Window, frustumSize: ViewerOptions['frustumSize'], getAspect: ViewerOptions['getAspect']): void {
+  //   const onWindowResize = (): void => {
+  //     this.camera.left = -frustumSize * getAspect(window) / 2;
+  //     this.camera.right = frustumSize * getAspect(window) / 2;
+  //     this.camera.top = frustumSize / 2;
+  //     this.camera.bottom = -frustumSize / 2;
+  //     this.camera.updateProjectionMatrix();
 
-    window.addEventListener('resize', onWindowResize, false);
+  //     const width = this.root.clientWidth;
+  //     const heigh = this.root.clientHeight;
+
+  //     this.renderer.setSize(width, heigh);
+  //   };
+
+  //   window.addEventListener('resize', onWindowResize, false);
+  // }
+
+  // #animate = (): void => {
+  //   requestAnimationFrame(this.animate);
+
+  //   if (this.needsDraw) {
+  //     this.needsDraw = false;
+  //     this.renderer.render(this.scene, this.camera);
+  //   }
+  // };
+
+  private calculateSize(): void {
+    const { width, height } = this;
+
+    const newWidth = this.root.clientWidth;
+    const newHeight = this.root.clientHeight;
+
+    if (newWidth !== width || newHeight !== height) {
+      this.camera.left = -newWidth / 2;
+      this.camera.right = newWidth / 2;
+      this.camera.top = newHeight / 2;
+      this.camera.bottom = -newHeight / 2;
+      this.camera.updateProjectionMatrix();
+
+      this.renderer.setSize(newWidth, newHeight);
+      this.needsDraw = true;
+    }
   }
 
   private animate(): void {
+    this.calculateSize();
+
+    if (this.needsDraw) {
+      this.needsDraw = false;
+      this.renderer.render(this.scene, this.camera);
+    }
+
     requestAnimationFrame(this.animate.bind(this));
-    this.renderer.render(this.scene, this.camera);
   }
 
   private changeColor():void {
     this.renderer.domElement.addEventListener('click', () => {
-      this.renderer.domElement.style.backgroundColor = 'blue';
+      (this.rectangle.material as THREE.MeshBasicMaterial).color.set('red');
     });
   }
 }
