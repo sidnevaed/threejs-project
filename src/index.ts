@@ -9,7 +9,7 @@ const viewerOptions: ViewerOptions = {
   getAspect: (browserWindow: Window) => browserWindow.innerWidth / browserWindow.innerHeight
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const viewer = new Viewer(viewerOptions);
-viewer.render();
 
 document.body.style.cssText = 'overflow:hidden; margin:0';
